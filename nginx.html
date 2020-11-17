@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Welcome to the world of shengalways</title>
+    <style>
+        i{color: #f00;}
+    </style>
+</head>
+<body>
+    <div class="content">
+        <pre>
+          安装nginx前，首先需要确认系统中安装了gcc、pcre-devel、zlib-devel、openssl-devel      执行 <i> yum -y install gcc pcre-devel zlib-devel openssl openssl-devel</i>
+
+          将nginx-1.9.9.tar.gz 上传到/usr/local/nginx目录下,如没有则新建
+          解压nginx      <i>tar -zxvf nginx-1.9.9.tar.gz</i>
+
+          进入到nginx目录   <i>cd nginx-1.9.9</i>
+
+          配置  <i>./configure --prefix=/usr/local/nginx</i>
+
+          编译   执行<i>make</i>   再执行<i>make install</i>
+
+          校验，在/usr/local/nginx目录下 <i>./sbin/nginx -t</i>
+
+          配置nginx配置文件
+          配置文件验证nginx -t
+
+          重新加载配置文件nginx -s reload
+        </pre>
+    </div>
+
+    <div style="margin-top:60px">
+      <div>nginx.conf配置文件</div>
+      <pre>
+user  root;
+worker_processes  1;
+
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+
+#pid        logs/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    gzip  on;
+    gzip_min_length 1k;
+    gzip_buffers 4 16k;
+    gzip_comp_level 4;
+    gzip_types text/plain application/x-javascript text/css application/xml text/javascript application/x-httpd-php image/jpeg image/gif image/png;
+    gzip_vary on;
+    gzip_disable "MSIE [1-6]\.";
+
+    server {
+        
+         listen       80;
+         server_name  localhost;
+
+         #charset koi8-r;
+
+         #access_log  logs/host.access.log  main;
+         root        /home/helian/vue/dist;#vue项目的打包后的dist
+
+         location / {
+             try_files $uri $uri/ @router;#需要指向下面的@router否则会出现vue的路由在nginx中刷新出现404
+             index  index.html index.htm;
+         }
+         #对应上面的@router，主要原因是路由的路径资源并不是一个真实的路径，所以无法找到具体的文件
+         #因此需要rewrite到index.html中，然后交给路由在处理请求资源
+         location @router {
+             rewrite ^.*$ /index.html last;
+         }
+
+         location /api {
+             rewrite  ^/api/(.*)$ /$1 break;
+             proxy_pass http://helian_server/;
+             proxy_set_header Host $http_host;
+             proxy_http_version 1.1;
+             proxy_set_header Upgrade $http_upgrade;
+             proxy_set_header Connection "upgrade";
+         }
+    }
+
+    upstream helian_server{
+         server 127.0.0.1:10080;
+    }  
+
+}
+
+      </pre>
+    </div>
+</body>
+</html>
